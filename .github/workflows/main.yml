@@ -35,7 +35,7 @@ jobs:
       - name: Run Backup
         run: |
           cd /tmp
-          git clone -q https://github.com/everruler12/roam2github.git roam2github
+          git clone -q https://github.com/dbieber/roam2github roam2github
           cd $_
           npm i
           npm run backup -s
@@ -46,6 +46,8 @@ jobs:
           BACKUP_EDN: true
           BACKUP_JSON: true
           BACKUP_MARKDOWN: true
+          BACKUP_FLAT_MARKDOWN: false
+          BACKUP_MSGPACK: false
       - name: Commit Changes
         uses: everruler12/git-auto-commit-action@latest
         with:
