@@ -6,13 +6,13 @@ on:
       - main
   schedule:
       # Here you can change how often your backup runs. See https://crontab.guru/examples.html
-      - cron: "15 5,17 * * *"
+      - cron: "15 5,21 * * *"
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     name: Backup
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,8 +43,8 @@ jobs:
           ROAM_EMAIL: ${{ secrets.ROAM_EMAIL }}
           ROAM_PASSWORD: ${{ secrets.ROAM_PASSWORD }}
           ROAM_GRAPH: ${{ secrets.ROAM_GRAPH }}
-          BACKUP_EDN: true
-          BACKUP_JSON: true
+          BACKUP_EDN: false
+          BACKUP_JSON: false
           BACKUP_MARKDOWN: true
           BACKUP_FLAT_MARKDOWN: false
           BACKUP_MSGPACK: false  
