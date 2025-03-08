@@ -44,10 +44,10 @@ jobs:
           ROAM_PASSWORD: ${{ secrets.ROAM_PASSWORD }}
           ROAM_GRAPH: ${{ secrets.ROAM_GRAPH }}
           BACKUP_EDN: true
-          BACKUP_JSON: true
+          BACKUP_JSON: false
           BACKUP_MARKDOWN: true
           BACKUP_FLAT_MARKDOWN: false
-          BACKUP_MSGPACK: false  
+          BACKUP_MSGPACK: true
     
       - name: Commit Changes
         uses: everruler12/git-auto-commit-action@latest
