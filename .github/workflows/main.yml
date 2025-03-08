@@ -6,7 +6,7 @@ on:
       - main
   schedule:
       # Here you can change how often your backup runs. See https://crontab.guru/examples.html
-      - cron: "15 5,21 * * *"
+      - cron: "30 13,21 * * *"
 
 jobs:
   backup:
@@ -35,7 +35,7 @@ jobs:
       - name: Run Backup
         run: |
           cd /tmp
-          git clone -q https://github.com/dbieber/roam2github roam2github
+          git clone -q https://github.com/everruler12/roam2github.git roam2github
           cd $_
           npm i
           npm run backup -s
