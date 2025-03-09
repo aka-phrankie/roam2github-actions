@@ -12,7 +12,7 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     name: Backup
-    timeout-minutes: 20
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +47,7 @@ jobs:
           BACKUP_JSON: false
           BACKUP_MARKDOWN: true
           BACKUP_FLAT_MARKDOWN: false
-          BACKUP_MSGPACK: true
+          BACKUP_MSGPACK: false
     
       - name: Commit Changes
         uses: everruler12/git-auto-commit-action@latest
