@@ -63,6 +63,7 @@ jobs:
           BACKUP_MSGPACK: false
 
       - name: Commit Changes
-        uses: dbieber/git-auto-commit-action@latest
+        uses: everruler12/git-auto-commit-action@latest
         with:
-            commit_message: Automatic backup
+          commit_message: Automatic backup
+
