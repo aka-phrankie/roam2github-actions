@@ -5,65 +5,51 @@ on:
     branches:
       - main
   schedule:
+      # Here you can change how often your backup runs. See https://crontab.guru/examples.html
       - cron: "30 13,21 * * *"
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     name: Backup
-    timeout-minutes: 10 # Increased timeout slightly just in case, but 9 is often fine.
+    timeout-minutes: 9
     steps:
-    
-      - name: Checkout Backup Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.BACKUP_REPO }} # Checkout the repository where you want to store the backup
+          repository: ${{ secrets.BACKUP_REPO }}
           token: ${{ secrets.ACCESS_TOKEN }}
-          
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
-      - name: Run Backup Script and Generate Files
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3.4.3
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+      
+      - name: Run Backup
         run: |
-          # Clone the roam2github script from the original repository
-          echo "Cloning roam2github script from dbieber/roam2github..."
-          git clone -q https://github.com/dbieber/roam2github.git /tmp/roam2github_script
-
-          # Change directory to the script's location
-          echo "Changing to script directory /tmp/roam2github_script..."
-          cd /tmp/roam2github_script
-
-          # Install script dependencies - Use npm ci for cleaner install in CI
-          echo "Installing script dependencies..."
-          # Use --omit=dev to install only production dependencies, saving time/space
-          npm ci --omit=dev
-
-          # Change back to the main workspace directory (where the backup repo is checked out)
-          # The GITHUB_WORKSPACE environment variable points to this directory
-          echo "Changing back to workspace directory ${{ github.workspace }}..."
-          cd ${{ github.workspace }}
-
-          # Execute the roam2github script from the workspace directory.
-          # The script should save files to the current directory (the workspace).
-          # The script reads configuration from environment variables defined below.
-          echo "Running roam2github script..."
-          node /tmp/roam2github_script/index.js
+          cd /tmp
+          git clone -q https://github.com/everruler12/roam2github.git roam2github
+          cd $_
+          npm i
+          npm run backup -s
         env:
-          # Pass Roam login credentials and graph name as environment variables
           ROAM_EMAIL: ${{ secrets.ROAM_EMAIL }}
           ROAM_PASSWORD: ${{ secrets.ROAM_PASSWORD }}
           ROAM_GRAPH: ${{ secrets.ROAM_GRAPH }}
-          # Pass backup format flags as environment variables
           BACKUP_EDN: false
           BACKUP_JSON: false
-          BACKUP_MARKDOWN: true # Ensure markdown is enabled
+          BACKUP_MARKDOWN: true
           BACKUP_FLAT_MARKDOWN: false
           BACKUP_MSGPACK: false
-
+    
       - name: Commit Changes
         uses: everruler12/git-auto-commit-action@latest
         with:
           commit_message: Automatic backup
-
