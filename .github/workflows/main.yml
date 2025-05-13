@@ -5,8 +5,6 @@ on:
     branches:
       - main
   schedule:
-      # Here you can change how often your backup runs. See https://crontab.guru/examples.html
-      # Example: Runs daily at 13:30 UTC and 21:30 UTC
       - cron: "30 13,21 * * *"
 
 jobs:
@@ -15,35 +13,18 @@ jobs:
     name: Backup
     timeout-minutes: 10 # Increased timeout slightly just in case, but 9 is often fine.
     steps:
+    
       - name: Checkout Backup Repository
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.BACKUP_REPO }} # Checkout the repository where you want to store the backup
           token: ${{ secrets.ACCESS_TOKEN }}
-          # Fetch history to allow git-auto-commit-action to work correctly
-          # Set fetch-depth: 0 if you need full history for some reason, default is 1 which is usually sufficient.
-
+          
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      # Note: Caching Node.js modules for the roam2github script cloned into /tmp
-      # might not be very effective unless the path is adjusted or the script repo
-      # is part of the main checked-out repository.
-      # For simplicity, we can omit the cache step for the /tmp cloned script,
-      # or adjust the path/key if you want to try caching dependencies of the script itself.
-      # Given the script is cloned fresh each time, caching dependencies inside /tmp
-      # is complex. Let's remove it for clarity unless needed.
-      # Removing cache step specific to the /tmp cloned script:
-      # - name: Cache Node.js modules
-      #   uses: actions/cache@v3.4.3
-      #   with:
-      #     path: ~/.npm
-      #     key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }} # This hashes package-lock.json in the main repo, not the script repo
-      #     restore-keys: |
-      #       ${{ runner.OS }}-node-
-
+          
       - name: Run Backup Script and Generate Files
         run: |
           # Clone the roam2github script from the original repository
@@ -82,11 +63,6 @@ jobs:
           BACKUP_MSGPACK: false
 
       - name: Commit Changes
-        # Use v5 of the action to fix the deprecated set-output error
-        uses: everruler12/git-auto-commit-action@v5
+        uses: dbieber/git-auto-commit-action@latest
         with:
-          commit_message: Automatic Roam Research backup
-          # Add the commit user/email for clarity in the commit history (optional but recommended)
-          # commit_user_name: Your Bot Name
-          # commit_user_email: your-bot-email@example.com
-          # commit_author: Author Name <author-email@example.com> # Or set author if different
+            commit_message: Automatic backup
