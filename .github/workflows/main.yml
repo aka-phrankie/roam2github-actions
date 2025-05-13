@@ -6,50 +6,87 @@ on:
       - main
   schedule:
       # Here you can change how often your backup runs. See https://crontab.guru/examples.html
+      # Example: Runs daily at 13:30 UTC and 21:30 UTC
       - cron: "30 13,21 * * *"
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     name: Backup
-    timeout-minutes: 9
+    timeout-minutes: 10 # Increased timeout slightly just in case, but 9 is often fine.
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Backup Repository
+        uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.BACKUP_REPO }}
+          repository: ${{ secrets.BACKUP_REPO }} # Checkout the repository where you want to store the backup
           token: ${{ secrets.ACCESS_TOKEN }}
-      
+          # Fetch history to allow git-auto-commit-action to work correctly
+          # Set fetch-depth: 0 if you need full history for some reason, default is 1 which is usually sufficient.
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v3.4.3
-        with:
-          path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-      
-      - name: Run Backup
+      # Note: Caching Node.js modules for the roam2github script cloned into /tmp
+      # might not be very effective unless the path is adjusted or the script repo
+      # is part of the main checked-out repository.
+      # For simplicity, we can omit the cache step for the /tmp cloned script,
+      # or adjust the path/key if you want to try caching dependencies of the script itself.
+      # Given the script is cloned fresh each time, caching dependencies inside /tmp
+      # is complex. Let's remove it for clarity unless needed.
+      # Removing cache step specific to the /tmp cloned script:
+      # - name: Cache Node.js modules
+      #   uses: actions/cache@v3.4.3
+      #   with:
+      #     path: ~/.npm
+      #     key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }} # This hashes package-lock.json in the main repo, not the script repo
+      #     restore-keys: |
+      #       ${{ runner.OS }}-node-
+
+      - name: Run Backup Script and Generate Files
         run: |
-          cd /tmp
-          git clone -q https://github.com/everruler12/roam2github.git roam2github
-          cd $_
-          npm i
-          npm run backup -s
+          # Clone the roam2github script from the original repository
+          echo "Cloning roam2github script from dbieber/roam2github..."
+          git clone -q https://github.com/dbieber/roam2github.git /tmp/roam2github_script
+
+          # Change directory to the script's location
+          echo "Changing to script directory /tmp/roam2github_script..."
+          cd /tmp/roam2github_script
+
+          # Install script dependencies - Use npm ci for cleaner install in CI
+          echo "Installing script dependencies..."
+          # Use --omit=dev to install only production dependencies, saving time/space
+          npm ci --omit=dev
+
+          # Change back to the main workspace directory (where the backup repo is checked out)
+          # The GITHUB_WORKSPACE environment variable points to this directory
+          echo "Changing back to workspace directory ${{ github.workspace }}..."
+          cd ${{ github.workspace }}
+
+          # Execute the roam2github script from the workspace directory.
+          # The script should save files to the current directory (the workspace).
+          # The script reads configuration from environment variables defined below.
+          echo "Running roam2github script..."
+          node /tmp/roam2github_script/index.js
         env:
+          # Pass Roam login credentials and graph name as environment variables
           ROAM_EMAIL: ${{ secrets.ROAM_EMAIL }}
           ROAM_PASSWORD: ${{ secrets.ROAM_PASSWORD }}
           ROAM_GRAPH: ${{ secrets.ROAM_GRAPH }}
+          # Pass backup format flags as environment variables
           BACKUP_EDN: false
           BACKUP_JSON: false
-          BACKUP_MARKDOWN: true
+          BACKUP_MARKDOWN: true # Ensure markdown is enabled
           BACKUP_FLAT_MARKDOWN: false
           BACKUP_MSGPACK: false
-    
+
       - name: Commit Changes
-        uses: everruler12/git-auto-commit-action@latest
+        # Use v5 of the action to fix the deprecated set-output error
+        uses: everruler12/git-auto-commit-action@v5
         with:
-          commit_message: Automatic backup
+          commit_message: Automatic Roam Research backup
+          # Add the commit user/email for clarity in the commit history (optional but recommended)
+          # commit_user_name: Your Bot Name
+          # commit_user_email: your-bot-email@example.com
+          # commit_author: Author Name <author-email@example.com> # Or set author if different
